@@ -28,5 +28,11 @@ sudo -u app mkdir /home/app/git
 GIT_DIR=/home/app/git sudo -u app -E git init --bare
 sudo -u app ln -s /home/app/post-update.js /home/app/git/hooks/post-update
 
+# re-initialize SSL keys
+cd ~proxy
+sudo -u proxy rm ~proxy/*.pem
+sudo -u proxy ./gen_self_signed.sh
+sudo -u proxy -i /usr/local/bin/node node_modules/.bin/forever restartall
+
 # cut ourself off at the knees
 truncate -s 0 ~/.ssh/authorized_keys
