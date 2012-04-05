@@ -32,7 +32,6 @@ sudo -u app ln -s /home/app/post-update.js /home/app/git/hooks/post-update
 cd ~proxy
 sudo -u proxy rm ~proxy/*.pem
 sudo -u proxy ./gen_self_signed.sh
-sudo -u proxy -i /usr/local/bin/node node_modules/.bin/forever restartall
 
 # cut ourself off at the knees
 truncate -s 0 ~/.ssh/authorized_keys
