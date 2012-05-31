@@ -41,4 +41,6 @@ if [ -f packages.txt ] ; then
   for pkg in `cat $HOME/packages.txt` ; do
       sudo yum remove $pkg
   done
+
+  rm packages.txt
 fi
