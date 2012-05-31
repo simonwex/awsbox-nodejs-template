@@ -44,3 +44,6 @@ if [ -f packages.txt ] ; then
 
   rm packages.txt
 fi
+
+# remove databases, if created
+sudo rm -rf /var/lib/mysql
