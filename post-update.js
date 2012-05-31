@@ -28,6 +28,8 @@ try {
 }
 console.log("application config:", appconfig);
 
+var awsboxJson;
+
 // create a temporary directory where we'll stage new code
 temp.mkdir('deploy', function(err, newCodeDir) {
   console.log(">> staging code to", newCodeDir);
@@ -48,14 +50,24 @@ temp.mkdir('deploy', function(err, newCodeDir) {
     if (!commands.length) return cb();
     var cmd = commands.shift();
     console.log(">>", cmd[0]);
-    child_process.exec(cmd[1], cmd[2] ? cmd[2] : {}, function(err, se, so) {
-      console.log(so,se);
+    var c = child_process.exec(cmd[1], cmd[2] ? cmd[2] : {}, function(err, se, so) {
       checkErr("while " + cmd[0], err);
       runNextCommand(cb);
     });
+    c.stdout.pipe(process.stdout);
+    c.stderr.pipe(process.stderr);
   }
 
   runNextCommand(function() {
+    // now let's parse .awsbox.config
+    try {
+      awsboxJson = JSON.parse(fs.readFileSync(path.join(newCodeDir, '.awsbox.json')));
+      if (!awsboxJson.processes) throw "missing 'processes' property";
+    } catch(e) {
+      console.log("!! Couldn't read .awsbox.json: " + e.toString());
+      process.exit(1);
+    }
+
     // once all commands are run, we'll start servers with forever
     forever.list(false, function(err, l) {
       checkErr("while listing processes", err);
@@ -80,21 +92,54 @@ temp.mkdir('deploy', function(err, newCodeDir) {
     commands.push([ 'move new code into place', 'mv ' + newCodeDir + ' ' + codeDir ]);
 
     runNextCommand(function() {
-      startServers();
+      updateEnv();
     });
+  }
+
+  function updateEnv() {
+    // now update the environment with what's in the config file
+    if (awsboxJson.env) {
+      var eKeys = Object.keys(awsboxJson.env);
+
+      console.log(">> setting env vars from .awsbox.json:", eKeys.join(", "));
+
+      function setNext() {
+        if (!eKeys.length) postDeploy();
+        else {
+          var k = eKeys.shift();
+          child_process.exec(
+            'echo "' + awsboxJson.env[k] + '"',
+            function(error, so, se) {
+              checkErr('while setting ENV var ' + k, error);
+              process.env[k] = so.toString().trim();
+              setNext();
+            });
+        }
+      }
+      setNext()
+    } else {
+      postDeploy();
+    }
+  }
+
+  function postDeploy() {
+    // now update the environment with what's in the config file
+    if (awsboxJson.remote_hooks && awsboxJson.remote_hooks.postdeploy) {
+      commands.push([ 'postdeploy hook', awsboxJson.remote_hooks.postdeploy, {
+        cwd: codeDir
+      }]);
+      runNextCommand(function(err) {
+        checkErr("while running postdeploy hook", err);
+        startServers();
+      });
+    } else {
+      startServers();
+    }
   }
 
   // now start all servers
   function startServers() {
-    var servers;
-    try {
-      var config = JSON.parse(fs.readFileSync(path.join(codeDir, '.awsbox.json')));
-      if (!config.processes) throw "missing 'processes' property";
-      servers = config.processes;
-    } catch(e) {
-      console.log("!! Couldn't read .awsbox.json: " + e.toString());
-      process.exit(1);
-    }
+    var servers = awsboxJson.processes;
 
     function startNextServer(cb) {
       if (!servers.length) return cb();

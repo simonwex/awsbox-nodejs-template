@@ -35,3 +35,10 @@ sudo -u proxy ./gen_self_signed.sh
 
 # cut ourself off at the knees
 truncate -s 0 ~/.ssh/authorized_keys
+
+# remove packages installed at creation time
+if [ -f packages.txt ] ; then
+  for pkg in `cat $HOME/packages.txt` ; do
+      sudo yum remove $pkg
+  done
+fi
