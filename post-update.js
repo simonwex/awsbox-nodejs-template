@@ -85,8 +85,8 @@ temp.mkdir('deploy', function(err, newCodeDir) {
   const codeDir = path.join(process.env['HOME'], 'code');
 
   function runHook(which, cb) {
-    if (awsboxJson.remote_hooks && awsboxJson.remote_hooks[which]) {
-      commands.push([ which + ' hook', awsboxJson.remote_hooks[which], {
+    if (awsboxJson.hooks && awsboxJson.hooks[which]) {
+      commands.push([ which + ' hook', awsboxJson.hooks[which], {
         cwd: codeDir
       }]);
       runNextCommand(function(err) {
