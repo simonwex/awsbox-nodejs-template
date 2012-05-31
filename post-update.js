@@ -84,6 +84,20 @@ temp.mkdir('deploy', function(err, newCodeDir) {
 
   const codeDir = path.join(process.env['HOME'], 'code');
 
+  function runHook(which, cb) {
+    if (awsboxJson.remote_hooks && awsboxJson.remote_hooks[which]) {
+      commands.push([ which + ' hook', awsboxJson.remote_hooks[which], {
+        cwd: codeDir
+      }]);
+      runNextCommand(function(err) {
+        checkErr("while running " + which + " hook", err);
+        cb(null);
+      });
+    } else {
+      cb(null);
+    }
+  }
+
   function moveCode() {
     commands.push([ 'delete ancient code', 'rm -rf ' + codeDir + '.old' ]);
     if (path.existsSync(codeDir)) {
@@ -123,18 +137,10 @@ temp.mkdir('deploy', function(err, newCodeDir) {
   }
 
   function postDeploy() {
-    // now update the environment with what's in the config file
-    if (awsboxJson.remote_hooks && awsboxJson.remote_hooks.postdeploy) {
-      commands.push([ 'postdeploy hook', awsboxJson.remote_hooks.postdeploy, {
-        cwd: codeDir
-      }]);
-      runNextCommand(function(err) {
-        checkErr("while running postdeploy hook", err);
-        startServers();
-      });
-    } else {
+    runHook('postdeploy', function(err) {
+      checkErr("while running postdeploy hook", err);
       startServers();
-    }
+    });
   }
 
   // now start all servers
@@ -163,7 +169,18 @@ temp.mkdir('deploy', function(err, newCodeDir) {
 
     // start all servers
     startNextServer(function(err) {
-      console.log('>> all done');
+      postStart();
     });
+  }
+
+  function postStart() {
+    runHook('poststart', function(err) {
+      checkErr('while running poststart hook', err);
+      allDone();
+    });
+  }
+
+  function allDone() {
+      console.log('>> all done');
   }
 });
