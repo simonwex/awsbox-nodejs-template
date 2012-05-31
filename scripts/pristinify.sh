@@ -37,12 +37,12 @@ sudo -u proxy ./gen_self_signed.sh
 truncate -s 0 ~/.ssh/authorized_keys
 
 # remove packages installed at creation time
-if [ -f packages.txt ] ; then
+if [ -f $HOME/packages.txt ] ; then
   for pkg in `cat $HOME/packages.txt` ; do
       sudo yum -y remove $pkg
   done
 
-  rm packages.txt
+  rm $HOME/packages.txt
 fi
 
 # remove databases, if created
