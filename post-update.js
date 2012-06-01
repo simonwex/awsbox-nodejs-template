@@ -26,7 +26,6 @@ try {
   console.log("!! invalid config.json:", e.toString());
   process.exit(1);
 }
-console.log("application config:", appconfig);
 
 var awsboxJson;
 
