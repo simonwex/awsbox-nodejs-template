@@ -111,12 +111,39 @@ temp.mkdir('deploy', function(err, newCodeDir) {
   }
 
   function updateEnv() {
-    // now update the environment with what's in the config file
-    if (awsboxJson.env) {
-      var eKeys = Object.keys(awsboxJson.env);
+    // now update the environment with what's in the .env file
+    var envEntries = fs.readFileSync(path.join(newCodeDir, '.env'), 'utf8').split(/\s*\r?\n\s*/);
 
-      console.log(">> setting env vars from .awsbox.json:", eKeys.join(", "));
+    var env = {};
+    var eKeys = [];
 
+    // It's expected that the env file looks like a foreman env file (http://ddollar.github.com/foreman/#ENVIRONMENT)
+    // Probably safe to call this foreshadowing.
+    for (var i in envEntries){
+      var line = envEntries[i];
+      if (line && line !== ""){
+        var matches = line.match(/^([A-Za-z_0-9]+)\=(.*)$/);
+        var key = matches[1];
+        var val = matches[2];
+        eKeys = key;
+
+        switch(true){
+          // Remove single quotes
+          case /^'(.*)'$/.test(val):
+            val = RegExp.$1;
+            break;
+          // Evaluate double-quoted strings
+          case /^"(.*)"$/.test(val):
+            val = JSON.parse(val);
+            break;
+        }
+
+        env[matches[1]] = val;
+      }
+    }
+
+    console.log(">> setting env vars from .env:", eKeys.join(", "));
+    if (eKeys.length) {
       function setNext() {
         if (!eKeys.length) postDeploy();
         else {
@@ -132,6 +159,7 @@ temp.mkdir('deploy', function(err, newCodeDir) {
       }
       setNext()
     } else {
+      console.log('>>  - no or empty .env found.')
       postDeploy();
     }
   }
