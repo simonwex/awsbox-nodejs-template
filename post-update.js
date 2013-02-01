@@ -112,7 +112,7 @@ temp.mkdir('deploy', function(err, newCodeDir) {
 
   function updateEnv() {
     // now update the environment with what's in the .env file
-    var envEntries = fs.readFileSync(path.join(newCodeDir, '.env'), 'utf8').split(/\s*\r?\n\s*/);
+    var envEntries = fs.readFileSync(path.join(process.env['HOME'], '.env'), 'utf8').split(/\s*\r?\n\s*/);
 
     var env = {};
     var eKeys = [];
@@ -125,7 +125,7 @@ temp.mkdir('deploy', function(err, newCodeDir) {
         var matches = line.match(/^([A-Za-z_0-9]+)\=(.*)$/);
         var key = matches[1];
         var val = matches[2];
-        eKeys = key;
+        eKeys.push(key);
 
         switch(true){
           // Remove single quotes
